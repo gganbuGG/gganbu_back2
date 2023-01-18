@@ -8,7 +8,7 @@ class user(models.Model):
     summoner_id=models.CharField(max_length=63,default='')
 
 class Profile(models.Model):
-    name=models.CharField(max_length=15,default='')
+    name=models.CharField(max_length=15,default='') # 외부키로 변경
     tier=models.CharField(max_length=15)
     LP=models.IntegerField()
     win_rate=models.FloatField()
@@ -16,6 +16,7 @@ class Profile(models.Model):
     lose=models.IntegerField()
 
 class match_info(models.Model):
+    # user 외부키
     matchID=models.CharField(max_length=15)
     info=models.JSONField()
 

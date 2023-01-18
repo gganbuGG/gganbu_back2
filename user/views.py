@@ -31,6 +31,7 @@ class ProfileAPI(APIView):
 
 class MatchesAPI(APIView):
     def get(self,request):
+        # fillter 원하는 user
         matches=match_info.objects.all()
-        return Response(matches,status=status.HTTP_200_OK)
+        return Response(matches, status=status.HTTP_200_OK)
 
