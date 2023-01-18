@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
-from user.models import user,Profile
+from user.models import user,Profile,match_info
 import pandas as pd
 import requests
 import json
@@ -57,7 +57,7 @@ def get_summoner_info(key,summonerName,country='kr',):
         print('break')
         
     data=response.json()
-    name=data["name"]
+    name=data['name']
     iconid=data['profileIconId']
     puuid=data['puuid']
     level=data['summonerLevel']
@@ -124,12 +124,11 @@ def get_summoner_league(key,summonerid,country='kr',):
     p.save() # u라는 db
 
 
-
 class Command(BaseCommand):
     help="bring your summoner's information"
     def handle(self, *args, **kwargs):
         API_KEY=getAPIkey()
-
+    
         sname=input("사용자 입력")
         id=get_summoner_info(API_KEY,sname)
         get_summoner_league(API_KEY,id)

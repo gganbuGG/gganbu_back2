@@ -14,3 +14,18 @@ class Profile(models.Model):
     win_rate=models.FloatField()
     win=models.IntegerField()
     lose=models.IntegerField()
+
+class match_info(models.Model):
+    matchID=models.CharField(max_length=15)
+    info=models.JSONField()
+
+
+class User_match(models.Model):
+    placement=models.IntegerField()
+    companion=models.CharField(max_length=20)
+    
+class partner_static(models.Model):
+    companion=models.ForeignKey(User_match,on_delete=models.CASCADE)
+    average_placement=models.FloatField()
+    first_place=models.IntegerField()
+    duo_number=models.IntegerField()
