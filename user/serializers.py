@@ -9,4 +9,4 @@ class userSerializer(serializers.ModelSerializer):
 class matchSerializer(serializers.ModelSerializer):
     class Meta:
         model=match
-        fields=['name','matchid','rank','petID','game_level','traits','augments','units','participant1','participant2','participant3','participant4','participant5','participant6','participant7','participant8']
+        fields=['Name','Matchid','Rank','PetID','Game_level','Traits','Augments','Units','Participant1','Participant2','Participant3','Participant4','Participant5','Participant6','Participant7','Participant8']
