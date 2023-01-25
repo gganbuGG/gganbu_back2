@@ -144,9 +144,9 @@ class usersAPI(APIView):
                         response=requests.get(f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-puuid/{PUUID}?api_key={key}')
                         namedata=response.json()
                         nickname=namedata["name"]
-                        puuid=namedata['puuid']
+                        playerpuuid=namedata['puuid']
                         level=namedata['summonerLevel']
-                        u=user(Name=nickname,Puuid=puuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
+                        u=user(Name=nickname,Puuid=playerpuuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
                         u.save()
                         data["metadata"]["participants"][i]=nickname
 
@@ -161,12 +161,21 @@ class usersAPI(APIView):
                 
                 for i in data["info"]['participants']:
                     if puuid == i["puuid"]:
-                        rank=i['placement']
+                        if i['placement']<3:
+                            rank=1
+                        elif i['placement']<5:
+                            rank=2
+                        elif i['placement']<7:
+                            rank=3
+                        else:
+                            rank=4
                         petID=i["companion"]['content_ID']
                         game_level=i['level']
                         traits=i["traits"]
                         augments=i["augments"]
                         units=i["units"]
+
+                    
             
                 mat=match(Name=name,Matchid=matchid,Rank=rank,PetID=petID,Game_level=game_level,Traits=traits,Augments=augments,Units=units,Participant1=participant1,Participant2=participant2,Participant3=participant3,Participant4=participant4,Participant5=participant5,Participant6=participant6,Participant7=participant7,Participant8=participant8)
                 mat.save()
