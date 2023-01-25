@@ -1,8 +1,12 @@
 from rest_framework import serializers
-from .models import Profile,match_info
+from .models import user,match
 
-class ProfileSerializer(serializers.ModelSerializer):
+class userSerializer(serializers.ModelSerializer):
     class Meta:
-        model=Profile
-        fields=['name','tier','LP','win_rate','win','lose']
+        model=user
+        fields=['name','puuid','level']
 
+class matchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=match
+        fields=['name','matchid','rank','petID','game_level','traits','augments','units','participant1','participant2','participant3','participant4','participant5','participant6','participant7','participant8']
