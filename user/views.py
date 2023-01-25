@@ -18,7 +18,7 @@ def getAPIkey():
     f=open("C:/devrent/back2/user/riot_api.txt","r")
     return f.read()
 
-class userAPI(APIView):
+class usersAPI(APIView):
     def get(self,request):
         matches=match.objects.all()
         serializer=matchSerializer(matches,many=True)
@@ -81,6 +81,9 @@ class userAPI(APIView):
         level=data['summonerLevel']
         
         u=user(Name=name,Puuid=puuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
+        if u in user.objects.all():
+            obj = user.objects.filter(Name=name)
+            obj.delete()
         u.save()
 
         #match id 가져오기
@@ -131,6 +134,22 @@ class userAPI(APIView):
             
             
             if data["info"]['tft_game_type'] == 'pairs':
+
+                for i in range(len(data["metadata"]["participants"])):
+                    if data["metadata"]["participants"][i] in user.objects.all():
+                        obj=user.objects.filter(Puuid=data["metadata"]["participants"][i])
+                        data["metadata"]["participants"][i]=obj["Name"]
+                    else:
+                        PUUID=data["metadata"]["participants"][i]
+                        response=requests.get(f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-puuid/{PUUID}?api_key={key}')
+                        namedata=response.json()
+                        nickname=namedata["name"]
+                        puuid=namedata['puuid']
+                        level=namedata['summonerLevel']
+                        u=user(Name=nickname,Puuid=puuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
+                        u.save()
+                        data["metadata"]["participants"][i]=nickname
+
                 participant1=data["metadata"]["participants"][0]
                 participant2=data["metadata"]["participants"][1]
                 participant3=data["metadata"]["participants"][2]
@@ -151,8 +170,14 @@ class userAPI(APIView):
             
                 mat=match(Name=name,Matchid=matchid,Rank=rank,PetID=petID,Game_level=game_level,Traits=traits,Augments=augments,Units=units,Participant1=participant1,Participant2=participant2,Participant3=participant3,Participant4=participant4,Participant5=participant5,Participant6=participant6,Participant7=participant7,Participant8=participant8)
                 mat.save()
-        matches=match.objects.all()
+        matches=match.objects.filter(Name=name)
         serializer=matchSerializer(matches,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
+
+class userAPI(APIView):
+    def get(self,request,sname):
+        matches=match.objects.filter(Name=sname)
+        serializer=matchSerializer(matches,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
         
