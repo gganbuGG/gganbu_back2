@@ -22,3 +22,15 @@ class match(models.Model):
     Participant6=models.CharField(max_length=20)
     Participant7=models.CharField(max_length=20)
     Participant8=models.CharField(max_length=20)
+
+class static(models.Model):
+    Name=models.ForeignKey("user",on_delete=models.CASCADE) 
+    Tier=models.CharField(max_length=20)
+    LP=models.IntegerField()
+    Win=models.IntegerField()
+    Win_rate=models.FloatField()
+    Average_rank=models.FloatField()
+    Top2=models.IntegerField()
+    Top2_rate=models.FloatField()
+    Total_game=models.IntegerField()
+
