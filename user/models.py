@@ -23,14 +23,12 @@ class match(models.Model):
     Participant7=models.CharField(max_length=20)
     Participant8=models.CharField(max_length=20)
 
-class static(models.Model):
-    Name=models.ForeignKey("user",on_delete=models.CASCADE) 
-    Tier=models.CharField(max_length=20)
-    LP=models.IntegerField()
-    Win=models.IntegerField()
-    Win_rate=models.FloatField()
-    Average_rank=models.FloatField()
-    Top2=models.IntegerField()
-    Top2_rate=models.FloatField()
-    Total_game=models.IntegerField()
 
+class static(models.Model):
+    Name=models.ForeignKey("user",on_delete=models.CASCADE)
+    Level=models.IntegerField()
+    Tier=models.CharField(max_length=20,default='')
+    LP=models.IntegerField(default=0)
+    Win=models.IntegerField(default=0)
+    Top2=models.IntegerField(default=0)
+    Total_game=models.IntegerField(default=0)

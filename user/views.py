@@ -5,8 +5,8 @@ from rest_framework.decorators import api_view
 from rest_framework.generics import get_object_or_404
 import time
 import requests
-import urllib.request
-from bs4 import BeautifulSoup
+import urllib.parse
+from bs4 import BeautifulSoup as bs
 from .models import user,match,static
 from .serializers import userSerializer,matchSerializer
 
@@ -21,6 +21,7 @@ def getAPIkey():
 
 class usersAPI(APIView):
     def get(self,request,sname):
+        
         matches=match.objects.filter(Name=sname)
         serializer=matchSerializer(matches,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
@@ -28,7 +29,7 @@ class usersAPI(APIView):
 
     def post(self,request,sname):
         key=getAPIkey()
-        req=request.data #이름을 request
+        
         summonername=sname
         
         response=requests.get(f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-name/{summonername}?api_key={key}') #데이터 불러오기
@@ -94,6 +95,7 @@ class usersAPI(APIView):
             obj.delete()
         u.save()
 
+        
         #match id 가져오기
         response_match=requests.get(f'https://asia.api.riotgames.com/tft/match/v1/matches/by-puuid/{puuid}/ids?start=0&count=20&api_key={key}')
         ids=response_match.json() #match id들 가져오기
@@ -101,6 +103,37 @@ class usersAPI(APIView):
         #foreign key
         s_name=user.objects.filter(Puuid=puuid)
         name=s_name[0]
+
+
+        # 티어 LP 크롤링
+        encode = urllib.parse.quote_plus(sname)
+        a=requests.get("https://lolchess.gg/profile/kr/"+encode)
+        req=a.text
+        soup=bs(req,'html.parser')
+        #더블업모드 티어 및 LP
+        b=soup.find_all('div','tier-ranked-info__content')[1]
+        if b.find('strong'):
+            tier=b.find('strong').text
+            tier=str(tier).strip()
+            LP=b.find('span').text
+            LP=LP[:-2]
+
+        else:
+            tier=b.find('span').text
+            LP=0
+
+
+
+        # 통계 모델 만들기
+        stat=static(Name=name,Level=level,Tier=tier,LP=LP)
+        if stat in static.objects.all():
+            obj = static.objects.filter(Name=name)
+            obj.delete()
+        stat.save()
+        
+
+
+        
 
         #match 정보 가져오기
         for matchid in ids:
@@ -184,10 +217,23 @@ class usersAPI(APIView):
                             augments=i["augments"]
                             units=i["units"]
 
+                    s=static.objects.get(Name=name)
+                    s.Total_game+=1
+                    if rank==1:
+                        s.Win+=1
+                        s.Top2+=1
+                    elif rank==2:
+                        s.Top2+=1
+                    s.save()
+
+
+
                         
                 
                     mat=match(Name=name,Matchid=matchid,Rank=rank,PetID=petID,Game_level=game_level,Traits=traits,Augments=augments,Units=units,Participant1=participant1,Participant2=participant2,Participant3=participant3,Participant4=participant4,Participant5=participant5,Participant6=participant6,Participant7=participant7,Participant8=participant8)
                     mat.save()
+
+                    
         
         matches=match.objects.filter(Name=name)
         serializer=matchSerializer(matches,many=True)
