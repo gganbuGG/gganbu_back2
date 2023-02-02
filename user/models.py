@@ -31,4 +31,5 @@ class static(models.Model):
     LP=models.IntegerField(default=0)
     Win=models.IntegerField(default=0)
     Top2=models.IntegerField(default=0)
+    sum_of_rank=models.IntegerField(default=0)
     Total_game=models.IntegerField(default=0)

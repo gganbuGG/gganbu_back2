@@ -8,7 +8,7 @@ import requests
 import urllib.parse
 from bs4 import BeautifulSoup as bs
 from .models import user,match,static
-from .serializers import userSerializer,matchSerializer
+from .serializers import userSerializer,matchSerializer,statSerializer
 
 
 @api_view(['GET'])
@@ -184,6 +184,7 @@ class usersAPI(APIView):
                         else:
                             PUUID=data["metadata"]["participants"][i]
                             response=requests.get(f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-puuid/{PUUID}?api_key={key}')
+                            # <못찾는 이름일경우 break 필요>
                             namedata=response.json()
                             nickname=namedata["name"]
                             playerpuuid=namedata['puuid']
@@ -219,6 +220,7 @@ class usersAPI(APIView):
 
                     s=static.objects.get(Name=name)
                     s.Total_game+=1
+                    s.sum_of_rank+=rank
                     if rank==1:
                         s.Win+=1
                         s.Top2+=1
@@ -226,10 +228,6 @@ class usersAPI(APIView):
                         s.Top2+=1
                     s.save()
 
-
-
-                        
-                
                     mat=match(Name=name,Matchid=matchid,Rank=rank,PetID=petID,Game_level=game_level,Traits=traits,Augments=augments,Units=units,Participant1=participant1,Participant2=participant2,Participant3=participant3,Participant4=participant4,Participant5=participant5,Participant6=participant6,Participant7=participant7,Participant8=participant8)
                     mat.save()
 
@@ -237,5 +235,12 @@ class usersAPI(APIView):
         
         matches=match.objects.filter(Name=name)
         serializer=matchSerializer(matches,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+
+class statAPI(APIView):
+    def get(self,request,sname):
+        
+        stat=static.objects.filter(Name=sname)
+        serializer=statSerializer(stat,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
