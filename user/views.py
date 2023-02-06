@@ -845,14 +845,35 @@ class usersAPI(APIView):
                         else:
                             PUUID=data["metadata"]["participants"][i]
                             response=requests.get(f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-puuid/{PUUID}?api_key={key}')
-                            # <못찾는 이름일경우 break 필요>
-                            namedata=response.json()
-                            nickname=namedata["name"]
-                            playerpuuid=namedata['puuid']
-                            level=namedata['summonerLevel']
-                            u=user(Name=nickname,Puuid=playerpuuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
-                            u.save()
-                            data["metadata"]["participants"][i]=nickname
+                            if response.status_code==200:
+                                
+                                namedata=response.json()
+                                nickname=namedata["name"]
+                                playerpuuid=namedata['puuid']
+                                level=namedata['summonerLevel']
+                                u=user(Name=nickname,Puuid=playerpuuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
+                                u.save()
+                                data["metadata"]["participants"][i]=nickname
+                            elif response.status_code==429:
+                                print('대기시간이 초과되었습니다. 잠시 기다려주세요')
+                                start_time = time.time()
+
+                                while True: # 429error가 끝날 때까지 무한 루프
+                                        if response.status_code == 429:
+                                            print('try 10 second wait time')
+                                            time.sleep(10)
+                                            response=requests.get(f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-puuid/{PUUID}?api_key={key}')
+                                            print(response.status_code)
+
+                                        elif response.status_code == 200: #다시 response 200이면 loop escape
+                                            namedata=response.json()
+                                            nickname=namedata["name"]
+                                            playerpuuid=namedata['puuid']
+                                            level=namedata['summonerLevel']
+                                            u=user(Name=nickname,Puuid=playerpuuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
+                                            u.save()
+                                            data["metadata"]["participants"][i]=nickname
+                                            break
 
                     participant1=data["metadata"]["participants"][0]
                     participant2=data["metadata"]["participants"][1]
