@@ -9,6 +9,7 @@ import urllib.parse
 from bs4 import BeautifulSoup as bs
 from .models import user,match,static
 from .serializers import userSerializer,matchSerializer,statSerializer
+from django.db.models import Q
 
 
 @api_view(['GET'])
@@ -688,7 +689,7 @@ def trait_K(name):
 class usersAPI(APIView):
     def get(self,request,sname):
         
-        matches=match.objects.filter(Name=sname)
+        matches=match.objects.filter(Q(Name__name__iexact=sname))
         serializer=matchSerializer(matches,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
@@ -705,8 +706,8 @@ class usersAPI(APIView):
                 pass
 
         elif response.status_code==404:#사용자 이름 못찾음
-            if user.objects.filter(Name=summonername):
-                obj = user.objects.filter(Name=summonername)
+            if user.objects.filter(name=summonername):
+                obj = user.objects.filter(name=summonername)
                 obj.delete()
             return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -755,9 +756,9 @@ class usersAPI(APIView):
         puuid=data['puuid']
         level=data['summonerLevel']
         
-        u=user(Name=name,Puuid=puuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
+        u=user(name=name,Puuid=puuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
         if u in user.objects.all():
-            obj = user.objects.filter(Name=name)
+            obj = user.objects.filter(name=name)
             obj.delete()
         u.save()
 
@@ -860,7 +861,7 @@ class usersAPI(APIView):
                                 nickname=namedata["name"]
                                 playerpuuid=namedata['puuid']
                                 level=namedata['summonerLevel']
-                                u=user(Name=nickname,Puuid=playerpuuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
+                                u=user(name=nickname,Puuid=playerpuuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
                                 u.save()
                                 data["metadata"]["participants"][i]=nickname
                             elif response.status_code==429:
@@ -879,7 +880,7 @@ class usersAPI(APIView):
                                             nickname=namedata["name"]
                                             playerpuuid=namedata['puuid']
                                             level=namedata['summonerLevel']
-                                            u=user(Name=nickname,Puuid=playerpuuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
+                                            u=user(name=nickname,Puuid=playerpuuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
                                             u.save()
                                             data["metadata"]["participants"][i]=nickname
                                             break

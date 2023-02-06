@@ -1,7 +1,7 @@
 from django.db import models
 
 class user(models.Model):
-    Name=models.CharField(max_length=15,unique=True,primary_key=True)
+    name=models.CharField(max_length=15,unique=True,primary_key=True)
     Puuid=models.CharField(max_length=78)
     Level=models.IntegerField()
     
