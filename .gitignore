@@ -15,7 +15,7 @@ media
 !.vscode/*.code-snippets
 riot_api.txt
 
-
+secrets.json
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,django,pycharm
