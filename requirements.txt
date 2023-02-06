@@ -1,0 +1,7 @@
+beautifulsoup4==4.11.1
+Django==4.1.2
+django-cors-headers==3.13.0
+django-filter==22.1
+djangorestframework==3.14.0
+jsonfield==3.1.0
+requests==2.28.1
