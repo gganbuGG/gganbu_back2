@@ -14,7 +14,7 @@ media
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 riot_api.txt
-
+static
 secret.json
 
 
