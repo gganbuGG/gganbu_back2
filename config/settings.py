@@ -14,11 +14,10 @@ from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 
 
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-secret_file = os.path.join(BASE_DIR, 'secret.json')  # secrets.json 파일 위치를 명시
+secret_file = os.path.join(BASE_DIR, 'secrets.json')  # secrets.json 파일 위치를 명시
 
 with open(secret_file) as f:
     secrets = json.loads(f.read())
@@ -34,9 +33,9 @@ def get_secret(setting):
 
 SECRET_KEY = get_secret("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['.pythonanywhere.com']
+ALLOWED_HOSTS = []
 
 
 # Application definition
