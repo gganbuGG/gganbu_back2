@@ -688,8 +688,11 @@ def trait_K(name):
 
 class usersAPI(APIView):
     def get(self,request,sname):
-        
-        matches=match.objects.filter(Q(Name__name__iexact=sname))
+        s_name=''
+        for i in sname:
+            if i!=' ':
+                s_name+=i
+        matches=match.objects.filter(Q(Name__name__iexact=s_name))
         serializer=matchSerializer(matches,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
@@ -752,7 +755,11 @@ class usersAPI(APIView):
                 print('break')
 
         data=response.json()
-        name=data["name"]
+        name=''
+        for i in data["name"]:
+            if i!=' ':
+                name+=i
+        
         puuid=data['puuid']
         level=data['summonerLevel']
         
@@ -858,7 +865,10 @@ class usersAPI(APIView):
                             if response.status_code==200:
                                 
                                 namedata=response.json()
-                                nickname=namedata["name"]
+                                nickname=''
+                                for p in namedata["name"]:
+                                    if p!=' ':
+                                        nickname+=p
                                 playerpuuid=namedata['puuid']
                                 level=namedata['summonerLevel']
                                 u=user(name=nickname,Puuid=playerpuuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
@@ -877,7 +887,10 @@ class usersAPI(APIView):
 
                                         elif response.status_code == 200: #다시 response 200이면 loop escape
                                             namedata=response.json()
-                                            nickname=namedata["name"]
+                                            nickname=''
+                                            for p in namedata["name"]:
+                                                if p!=' ':
+                                                    nickname+=p
                                             playerpuuid=namedata['puuid']
                                             level=namedata['summonerLevel']
                                             u=user(name=nickname,Puuid=playerpuuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
