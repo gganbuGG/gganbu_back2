@@ -772,7 +772,11 @@ class usersAPI(APIView):
 
 
         # 티어 LP 크롤링
-        encode = urllib.parse.quote_plus(sname)
+        croll=''
+        for i in range(0,len(sname)): # 공백제거
+            if sname[i]!=' ':
+                croll+=sname[i]
+        encode = urllib.parse.quote_plus(croll)
         a=requests.get("https://lolchess.gg/profile/kr/"+encode)
         req=a.text
         soup=bs(req,'html.parser')
