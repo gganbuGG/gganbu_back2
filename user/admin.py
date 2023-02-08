@@ -5,3 +5,4 @@ class matchAdmin(admin.ModelAdmin):
     search_fields=('Name__name',)
 
 admin.site.register(match, matchAdmin)
+

@@ -19,8 +19,8 @@ class UserAPI(APIView):
         for i in sname:
             if i!=' ':
                 s_name+=i
-        matches=user.objects.filter(Q(Name__name__iexact=s_name))
-        serializer=userSerializer(matches,many=True)
+        users=user.objects.filter(Q(name__iexact=s_name))
+        serializer=userSerializer(users,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
 def getAPIkey():
