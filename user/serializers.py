@@ -4,7 +4,7 @@ from .models import user,match,static
 class userSerializer(serializers.ModelSerializer):
     class Meta:
         model=user
-        fields=['name','puuid','level']
+        fields=['name','level']
 
 class matchSerializer(serializers.ModelSerializer):
     class Meta:

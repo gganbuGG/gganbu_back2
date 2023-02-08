@@ -12,9 +12,16 @@ from .serializers import userSerializer,matchSerializer,statSerializer
 from django.db.models import Q
 
 
-@api_view(['GET'])
-def UserAPI(request):
-    return Response("깐부.gg입니다.")
+
+class UserAPI(APIView):
+    def get(self,request,sname):
+        s_name=''
+        for i in sname:
+            if i!=' ':
+                s_name+=i
+        matches=user.objects.filter(Q(Name__name__iexact=s_name))
+        serializer=userSerializer(matches,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
 
 def getAPIkey():
     f=open("C:/devrent/back2/user/riot_api.txt","r")
