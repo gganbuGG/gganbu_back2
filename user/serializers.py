@@ -9,7 +9,7 @@ class userSerializer(serializers.ModelSerializer):
 class matchSerializer(serializers.ModelSerializer):
     class Meta:
         model=match
-        fields=['Name','Matchid','Rank','PetID','Game_level','Traits','Augments','Units','Participant1','Participant2','Participant3','Participant4','Participant5','Participant6','Participant7','Participant8']
+        fields=['Name','Matchid','Rank','PetID','Game_level','Traits','Augments','Units','Participant']
 
 class statSerializer(serializers.ModelSerializer):
     Win_rate = serializers.SerializerMethodField('win_rate')

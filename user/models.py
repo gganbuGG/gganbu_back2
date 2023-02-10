@@ -14,14 +14,8 @@ class match(models.Model):
     Traits=models.JSONField()
     Augments=models.JSONField()
     Units=models.JSONField()
-    Participant1=models.CharField(max_length=25)
-    Participant2=models.CharField(max_length=25)
-    Participant3=models.CharField(max_length=25)
-    Participant4=models.CharField(max_length=25)
-    Participant5=models.CharField(max_length=25)
-    Participant6=models.CharField(max_length=25)
-    Participant7=models.CharField(max_length=25)
-    Participant8=models.CharField(max_length=25)
+    Participant=models.JSONField()
+    
 
 
 class static(models.Model):

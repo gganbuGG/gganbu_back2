@@ -890,15 +890,15 @@ class usersAPI(APIView):
             traits={}
             augments=[]
             units=[]
-            
+            participants=[]
             
             if data["info"]['tft_game_type'] == 'pairs':
                 m = match.objects.filter(Matchid = matchid)
                 if not m :
                     for i in range(len(data["metadata"]["participants"])):
-                        if data["metadata"]["participants"][i] in user.objects.all():
+                        if data["metadata"]["participants"][i] in user.objects.all(): # puuid 닉네임으로 바꾸기
                             obj=user.objects.filter(Puuid=data["metadata"]["participants"][i])
-                            data["metadata"]["participants"][i]=obj["Name"]
+                            participants.append(obj["Name"])
                         else:
                             PUUID=data["metadata"]["participants"][i]
                             response=requests.get(f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-puuid/{PUUID}?api_key={key}')
@@ -913,7 +913,7 @@ class usersAPI(APIView):
                                 level=namedata['summonerLevel']
                                 u=user(name=nickname,Puuid=playerpuuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
                                 u.save()
-                                data["metadata"]["participants"][i]=nickname
+                                participants.append(nickname)
                             elif response.status_code==429:
                                 print('대기시간이 초과되었습니다. 잠시 기다려주세요')
                                 start_time = time.time()
@@ -935,18 +935,9 @@ class usersAPI(APIView):
                                             level=namedata['summonerLevel']
                                             u=user(name=nickname,Puuid=playerpuuid,Level=level)# 유저 테이블에 puuid 와 이름, level저장
                                             u.save()
-                                            data["metadata"]["participants"][i]=nickname
+                                            participants.append(nickname)
                                             break
-
-                    participant1=data["metadata"]["participants"][0]
-                    participant2=data["metadata"]["participants"][1]
-                    participant3=data["metadata"]["participants"][2]
-                    participant4=data["metadata"]["participants"][3]
-                    participant5=data["metadata"]["participants"][4]
-                    participant6=data["metadata"]["participants"][5]
-                    participant7=data["metadata"]["participants"][6]
-                    participant8=data["metadata"]["participants"][7]
-                    
+                 
                     for i in data["info"]['participants']:
                         if puuid == i["puuid"]:
                             if i['placement']<3:
@@ -989,7 +980,7 @@ class usersAPI(APIView):
                         s.Top2+=1
                     s.save()
 
-                    mat=match(Name=name,Matchid=matchid,Rank=rank,PetID=petID,Game_level=game_level,Traits=traits,Augments=augments,Units=units,Participant1=participant1,Participant2=participant2,Participant3=participant3,Participant4=participant4,Participant5=participant5,Participant6=participant6,Participant7=participant7,Participant8=participant8)
+                    mat=match(Name=name,Matchid=matchid,Rank=rank,PetID=petID,Game_level=game_level,Traits=traits,Augments=augments,Units=units,Participant=participants)
                     mat.save()
 
                     
