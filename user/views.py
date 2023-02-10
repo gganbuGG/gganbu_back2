@@ -887,7 +887,7 @@ class usersAPI(APIView):
             rank=0
             petID=''
             game_level=0
-            traits={}
+            trait={}
             augments=[]
             units=[]
             participants=[]
@@ -950,24 +950,30 @@ class usersAPI(APIView):
                                 rank=4
                             petID=pet_K(i["companion"]['item_ID'])
                             game_level=i['level']
+
                             #활성화되어있는 특성만 뽑기
                             for j in i["traits"]:
                                 if j["tier_current"]>=1:
-                                    traits[trait_K(j["name"])]=j["num_units"]
+                                    trait[trait_K(j["name"])]=j["num_units"]
                             
+
                             for j in i["augments"]:
                                 augments.append(Aug_K(j))
                                 
                             for j in i["units"]:
-                                dict={}
-                                dict["Champion"]=champ_K(j["character_id"])
+                                dictionary={}
+                                dictionary["Champion"]=champ_K(j["character_id"])
                                 item=[]
                                 for k in j["itemNames"]:
                                     item.append(Item_K(k))
-                                dict["items"]=item
-                                dict["rarity"]=j["rarity"]
-                                dict["tier"]=j["tier"]
-                                units.append(dict)
+                                dictionary["items"]=item
+                                dictionary["rarity"]=j["rarity"]
+                                dictionary["tier"]=j["tier"]
+                                units.append(dictionary)
+
+                    # 정렬
+                    sorted_traits=sorted(trait.items(), key=lambda x:x[1],reverse=True)
+                    traits=dict(sorted_traits)
                                 
 
                     s=static.objects.get(Name=name)
