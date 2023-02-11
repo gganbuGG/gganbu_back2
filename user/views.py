@@ -887,7 +887,7 @@ class usersAPI(APIView):
             rank=0
             petID=''
             game_level=0
-            trait={}
+            traits={}
             augments=[]
             units=[]
             participants=[]
@@ -951,10 +951,13 @@ class usersAPI(APIView):
                             petID=pet_K(i["companion"]['item_ID'])
                             game_level=i['level']
 
+
+                            tr=i['traits']
+                            trait = sorted(tr, key=(lambda x: x['style']),reverse=True)
                             #활성화되어있는 특성만 뽑기
-                            for j in i["traits"]:
+                            for j in trait:
                                 if j["tier_current"]>=1:
-                                    trait[trait_K(j["name"])]=j["num_units"]
+                                    traits[trait_K(j["name"])]=j["num_units"]
                             
 
                             for j in i["augments"]:
@@ -971,9 +974,7 @@ class usersAPI(APIView):
                                 dictionary["tier"]=j["tier"]
                                 units.append(dictionary)
 
-                    # 정렬
-                    sorted_traits=sorted(trait.items(), key=lambda x:x[1],reverse=True)
-                    traits=dict(sorted_traits)
+                    
                                 
 
                     s=static.objects.get(Name=name)
