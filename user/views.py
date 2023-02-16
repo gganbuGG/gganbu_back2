@@ -5,6 +5,7 @@ from rest_framework.decorators import api_view
 from rest_framework.generics import get_object_or_404
 import time
 import requests
+import urllib
 import urllib.parse
 from bs4 import BeautifulSoup as bs
 from .models import user,match,static
@@ -365,6 +366,7 @@ def champ_K(name):
 
 def Aug_K(name):
     augments = {
+    'TFT6_augment_PandorasItem' : '판도라의 아이템',
     'TFT6_Augment_ForceOfNature': '신병',
     'TFT6_Augment_FirstAidKit': '응급처치 키트1',
     'TFT6_Augment_MaxLevel10': '레벨 업!',
@@ -963,9 +965,19 @@ class usersAPI(APIView):
                             for j in i["augments"]:
                                 augments.append(Aug_K(j))
                                 
+
+
+
+
+
+
+
                             for j in i["units"]:
                                 dictionary={}
+                                character_id=j["character_id"]
                                 dictionary["Champion"]=champ_K(j["character_id"])
+                                url=f"static/champion/{character_id}.TFT_Set8.png"
+                                dictionary["champion_image"]=url
                                 item=[]
                                 for k in j["itemNames"]:
                                     item.append(Item_K(k))

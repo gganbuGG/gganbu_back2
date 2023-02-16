@@ -7,7 +7,7 @@
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 riot_api.txt
-static
+
 secrets.json
 
 
