@@ -4,12 +4,12 @@ from .models import user,match,static
 class userSerializer(serializers.ModelSerializer):
     class Meta:
         model=user
-        fields=['name','Level']
+        fields=['name','Level','profile_img']
 
 class matchSerializer(serializers.ModelSerializer):
     class Meta:
         model=match
-        fields=['Name','Matchid','Rank','PetID','Game_level','Traits','Augments','Units','Participant']
+        fields=['Name','Matchid','Rank','PetID','Pet_Img','Game_level','Traits','Augments','Units','Participant']
 
 class statSerializer(serializers.ModelSerializer):
     Win_rate = serializers.SerializerMethodField('win_rate')

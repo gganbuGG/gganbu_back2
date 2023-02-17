@@ -4,12 +4,14 @@ class user(models.Model):
     name=models.CharField(max_length=15,unique=True,primary_key=True)
     Puuid=models.CharField(max_length=78)
     Level=models.IntegerField()
+    profile_img=models.CharField(max_length=50,default='')
     
 class match(models.Model):
     Name=models.ForeignKey("user",on_delete=models.CASCADE,db_column="name")
     Matchid=models.CharField(max_length=30)
     Rank=models.IntegerField()
     PetID=models.JSONField(max_length=40)
+    Pet_Img=models.CharField(max_length=50)
     Game_level=models.IntegerField()
     Traits=models.JSONField()
     Augments=models.JSONField()
