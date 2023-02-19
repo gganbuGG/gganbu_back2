@@ -11,8 +11,8 @@ from bs4 import BeautifulSoup as bs
 from .models import user,match,static
 from .serializers import userSerializer,matchSerializer,statSerializer
 from django.db.models import Q
-
-
+from django.http import HttpResponse
+from django.shortcuts import render
 
 class UserAPI(APIView):
     def get(self,request,sname):
@@ -1005,3 +1005,12 @@ class statAPI(APIView):
         serializer=statSerializer(stat,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
+def riot(request):
+    filename = "riot.txt"
+    content = 'b3438d26-9958-4c80-b780-163b62859972'
+    response = HttpResponse(content, content_type='text/plain')
+    response['Content-Disposition'] = 'attachment; filename={0}'.format(filename)
+    return response
+
+def info(request):
+    return render(request, 'user/info.html')
