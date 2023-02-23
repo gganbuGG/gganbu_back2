@@ -13,7 +13,7 @@ from .serializers import userSerializer,matchSerializer,statSerializer
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
-
+import threading
 class UserAPI(APIView):
     def get(self,request,sname):
         s_name=''
@@ -705,8 +705,290 @@ def trait_K(name):
 
     }
     return traits[name]
+    
+def update(summonername):
+    key=getAPIkey()
+    
+    response=requests.get(f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-name/{summonername}?api_key={key}') #데이터 불러오기
+
+    if response.status_code==200: # 정상처리
+            print('기다려주세요')
+            pass
+
+    elif response.status_code==404:#사용자 이름 못찾음
+        if user.objects.filter(name=summonername):
+            obj = user.objects.filter(name=summonername)
+            obj.delete()
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
 
+    elif response.status_code == 429:
+        print('api cost full : infinite loop start')
+        start_time = time.time()
+
+        while True: # 429error가 끝날 때까지 무한 루프
+                if response.status_code == 429:
+                    print('try 10 second wait time')
+                    time.sleep(10)
+                    url = f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-name/{summonername}?api_key={key}'
+                    response = requests.get(url)
+                    print(response.status_code)
+
+                elif response.status_code == 200: #다시 response 200이면 loop escape
+                    print('total wait time : ', time.time() - start_time)                            
+                    print('recovery api cost')
+                    break
+
+    elif response.status_code == 503: # 잠시 서비스를 이용하지 못하는 에러
+                print('service available error')
+                start_time = time.time()
+
+                while True:
+                    if response.status_code == 503 or response.status_code == 429:
+
+                        print('try 10 second wait time')
+                        time.sleep(10)
+                        url = f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-name/{summonername}?api_key={key}'
+                        response = requests.get(url)
+                        print(response.status_code)
+
+                    elif response.status_code == 200: # 똑같이 response가 정상이면 loop escape
+                        print('total error wait time : ', time.time() - start_time)
+                        print('recovery api cost')
+                        break
+
+    elif response.status_code == 403: # api갱신이 필요
+            print('you need api renewal')
+            print('break')
+
+    data=response.json()
+    name=''
+    for i in data["name"]:
+        if i!=' ':
+            name+=i
+    
+    puuid=data['puuid']
+    level=data['summonerLevel']
+    profile_icon=data['profileIconId']
+    profileid=f"http://ddragon.leagueoflegends.com/cdn/13.3.1/img/profileicon/{profile_icon}.png"
+    
+    u=user(name=name,Puuid=puuid,Level=level,profile_img=profileid)# 유저 테이블에 puuid 와 이름, level저장
+    if u in user.objects.all():
+        obj = user.objects.filter(name=name)
+        obj.delete()
+    u.save()
+
+    
+    #match id 가져오기
+    response_match=requests.get(f'https://asia.api.riotgames.com/tft/match/v1/matches/by-puuid/{puuid}/ids?start=0&count=20&api_key={key}')
+    ids=response_match.json() #match id들 가져오기
+    
+    #foreign key
+    s_name=user.objects.filter(Puuid=puuid)
+    name=s_name[0]
+
+
+    # 티어 LP 크롤링
+    croll=''
+    for i in range(0,len(summonername)): # 공백제거
+        if summonername[i]!=' ':
+            croll+=summonername[i]
+    encode = urllib.parse.quote_plus(croll)
+    a=requests.get("https://lolchess.gg/profile/kr/"+encode)
+    req=a.text
+    soup=bs(req,'html.parser')
+    #더블업모드 티어 및 LP
+    b=soup.find_all('div','tier-ranked-info__content')[1]
+    if b.find('strong'):
+        tier=b.find('strong').text
+        tier=str(tier).strip()
+        LP=b.find('span').text
+        LP=LP[:-2]
+
+    else:
+        tier=b.find('span').text
+        LP=0
+
+
+
+    # 통계 모델 만들기
+    stat=static(Name=name,Level=level,Tier=tier,LP=LP)
+    if stat in static.objects.all():
+        obj = static.objects.filter(Name=name)
+        obj.delete()
+    stat.save()
+    
+
+    hero_augment=['TFT8_Augment_BelVethVoidmother', 'TFT8_Augment_AurelionSolImpact', 'TFT8_Augment_ChoGathMR', 'TFT8_Augment_RammusArmor', 'TFT8_Augment_VelkozFrostburn', 'TFT8_Augment_ZacSupersize', 'TFT8_Augment_SonaExile', 'TFT8_Augment_SonaSupport', 'TFT8_Augment_AlistarAoEPulverizer', 'TFT8_Augment_JaxASCarry', 'TFT8_Augment_SennaASCarry', 'TFT8_Augment_NilahReflection', 'TFT8_Augment_ZoeDoubleTrouble', 'TFT8_Augment_SennaSupport', 'TFT8_Augment_AlistarBeefUp', 'TFT8_Augment_RivenReverberation', 'TFT8_Augment_AnnieCarry', 'TFT8_Augment_AnnieSupport', 'TFT8_Augment_CamilleCarry', 'TFT8_Augment_LeeSinSupport', 'TFT8_Augment_RellSupport', 'TFT8_Augment_YuumiSupport', 'TFT8_Augment_ViSupport', 'TFT8_Augment_SivirSupport', 'TFT8_Augment_KaisaStarCrossed', 'TFT8_Augment_YasuoCarry', 'TFT8_Augment_LeBlancGlitch', 'TFT8_Augment_FioraCarry', 'TFT8_Augment_EzrealSupport', 'TFT8_Augment_JinxCarry', 'TFT8_Augment_MalphiteCarry', 'TFT8_Augment_NasusCarry', 'TFT8_Augment_DravenCarry', 'TFT8_Augment_KaisaCarry', 'TFT8_Augment_GalioCarry', 'TFT8_Augment_GalioSupport', 'TFT8_Augment_AurelionSolCarry', 'TFT8_Augment_JaxSupport', 'TFT8_Augment_LuxCarry', 'TFT8_Augment_PoppyCarry', 'TFT8_Augment_ApheliosSupport', 'TFT8_Augment_LuxSupport', 'TFT8_Augment_GangplankSupport', 'TFT8_Augment_SylasCarry', 'TFT8_Augment_SylasSupport', 'TFT8_Augment_SettCarry', 'TFT8_Augment_KayleCarry', 'TFT8_Augment_KayleSupport', 'TFT8_Augment_EkkoSupport', 'TFT8_Augment_MordekaiserCarry', 'TFT8_Augment_VelkozSupport', 'TFT8_Augment_SettSupport', 'TFT8_Augment_TalonCarry', 'TFT8_Augment_MissFortuneCarry', 'TFT8_Augment_ChoGathCarry', 'TFT8_Augment_SyndraSupport', 'TFT8_Augment_RammusCarry', 'TFT8_Augment_LeonaCarry', 'TFT8_Augment_NunuSupport', 'TFT8_Augment_FiddlesticksCarry', 'TFT8_Augment_UrgotCarry', 'TFT8_Augment_JannaSupport', 'TFT8_Augment_SamiraCarry', 'TFT8_Augment_TaliyahSupport', 'TFT8_Augment_ZedSupport', 'TFT8_Augment_BlitzcrankCarry', 'TFT8_Augment_UrgotSupport', 'TFT8_Augment_BlitzcrankSupport', 'TFT8_Augment_MordekaiserSupport', 'TFT8_Augment_ApheliosCarry', 'TFT8_Augment_LuluSupport', 'TFT8_Augment_LeonaSupport', 'TFT8_Augment_SejuaniCarry', 'TFT8_Augment_SyndraCarry', 'TFT8_Augment_WukongSupport', 'TFT8_Augment_AsheCarry', 'TFT8_Augment_AsheSupport', 'TFT8_Augment_NilahSupport', 'TFT8_Augment_VayneSupport', 'TFT8_Augment_RivenSupport', 'TFT8_Augment_ZoeSupport', 'TFT8_Augment_LeBlancSupport', 'TFT8_Augment_LeeSinCarry', 'TFT8_Augment_YuumiCarry', 'TFT8_Augment_FiddlesticksSupport', 'TFT8_Augment_PoppySupport', 'TFT8_Augment_JannaCarry', 'TFT8_Augment_RenegadePartners', 'TFT8_Augment_TaliyahCarry', 'TFT8_Augment_ZedCarry', 'TFT8_Augment_SivirCarry', 'TFT8_Augment_RenektonCarry', 'TFT8_Augment_ViCarry', 'TFT8_Augment_RenektonSupport', 'TFT8_Augment_RellCarry', 'TFT8_Augment_FioraSupport', 'TFT8_Augment_DravenSupport', 'TFT8_Augment_YasuoSupport', 'TFT8_Augment_NasusSupport', 'TFT8_Augment_SorakaSupport', 'TFT8_Augment_LuluCarry', 'TFT8_Augment_SorakaCarry', 'TFT8_Augment_VayneCarry', 'TFT8_Augment_MalphiteSupport', 'TFT8_Augment_BelVethCarry', 'TFT8_Augment_EkkoCarry', 'TFT8_Augment_GangplankCarry', 'TFT8_Augment_JinxSupport', 'TFT8_Augment_MissFortuneSupport', 'TFT8_Augment_CamilleSupport', 'TFT8_Augment_WukongCarry', 'TFT8_Augment_SejuaniSupport', 'TFT8_Augment_ZacSupport', 'TFT8_Augment_NunuCarry', 'TFT8_Augment_ViegoCarry', 'TFT8_Augment_SamiraSupport', 'TFT8_Augment_TalonSupport', 'TFT8_Augment_EzrealCarry']
+    
+
+    #match 정보 가져오기
+    for matchid in ids:
+        response=requests.get(f'https://asia.api.riotgames.com/tft/match/v1/matches/{matchid}?api_key={key}')
+
+        if response.status_code==200:
+            
+            pass
+        elif response.status_code==429:
+            print('대기시간이 초과되었습니다. 잠시 기다려주세요')
+            start_time = time.time()
+
+            while True: # 429error가 끝날 때까지 무한 루프
+                    if response.status_code == 429:
+                        print('try 10 second wait time')
+                        time.sleep(10)
+                        response=requests.get(f'https://asia.api.riotgames.com/tft/match/v1/matches/{matchid}?api_key={key}')
+                        print(response.status_code)
+
+                    elif response.status_code == 200: #다시 response 200이면 loop escape
+                        print('total wait time : ', time.time() - start_time)
+                        print('recovery api cost')
+                        break
+        elif response.status_code == 503: # 잠시 서비스를 이용하지 못하는 에러
+                print('service available error')
+                
+
+        elif response.status_code == 403: # api갱신이 필요
+            print('you need api renewal')
+            print('break')
+                
+
+        data = response.json()
+        rank=0
+        petID=''
+        pet_IMG=''
+        game_level=0
+        traits={}
+        augments={}
+        units=[]
+        participants=[]
+        
+
+        if data["info"]['tft_game_type'] == 'pairs':
+            m = match.objects.filter(Matchid = matchid)
+            if not m :
+                for i in range(len(data["metadata"]["participants"])):
+                    if data["metadata"]["participants"][i] in user.objects.all(): # puuid 닉네임으로 바꾸기
+                        obj=user.objects.filter(Puuid=data["metadata"]["participants"][i])
+                        participants.append(obj["Name"])
+                    else:
+                        PUUID=data["metadata"]["participants"][i]
+                        response=requests.get(f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-puuid/{PUUID}?api_key={key}')
+                        if response.status_code==200:
+                            
+                            namedata=response.json()
+                            nickname=''
+                            for p in namedata["name"]:
+                                if p!=' ':
+                                    nickname+=p
+                            playerpuuid=namedata['puuid']
+                            level=namedata['summonerLevel']
+                            profile_icon=namedata['profileIconId']
+                            profileid=f"http://ddragon.leagueoflegends.com/cdn/13.3.1/img/profileicon/{profile_icon}.png"
+                            u=user(name=nickname,Puuid=playerpuuid,Level=level,profile_img=profileid)# 유저 테이블에 puuid 와 이름, level저장
+                            u.save()
+                            participants.append(nickname)
+                        elif response.status_code==429:
+                            print('대기시간이 초과되었습니다. 잠시 기다려주세요')
+                            start_time = time.time()
+
+                            while True: # 429error가 끝날 때까지 무한 루프
+                                    if response.status_code == 429:
+                                        print('try 10 second wait time')
+                                        time.sleep(10)
+                                        response=requests.get(f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-puuid/{PUUID}?api_key={key}')
+                                        print(response.status_code)
+
+                                    elif response.status_code == 200: #다시 response 200이면 loop escape
+                                        namedata=response.json()
+                                        nickname=''
+                                        for p in namedata["name"]:
+                                            if p!=' ':
+                                                nickname+=p
+                                        playerpuuid=namedata['puuid']
+                                        level=namedata['summonerLevel']
+                                        profile_icon=namedata['profileIconId']
+                                        profileid=f"http://ddragon.leagueoflegends.com/cdn/13.3.1/img/profileicon/{profile_icon}.png"
+                                        u=user(name=nickname,Puuid=playerpuuid,Level=level,profile_img=profileid)# 유저 테이블에 puuid 와 이름, level저장
+                                        u.save()
+                                        participants.append(nickname)
+                                        break
+                
+                for i in data["info"]['participants']:
+                    if puuid == i["puuid"]:
+                        if i['placement']<3:
+                            rank=1
+                        elif i['placement']<5:
+                            rank=2
+                        elif i['placement']<7:
+                            rank=3
+                        else:
+                            rank=4
+                        petID=pet_K(i["companion"]['item_ID'])
+                        
+                        pet_code=pet_img(i["companion"]['item_ID'])
+                        pet_IMG=f"https://ddragon.leagueoflegends.com/cdn/13.3.1/img/tft-tactician/{pet_code}"
+                        
+                        game_level=i['level']
+
+
+                        tr=i['traits']
+                        trait = sorted(tr, key=(lambda x: x['style']),reverse=True)
+                        #활성화되어있는 특성만 뽑기
+                        for j in trait:
+                            if j["tier_current"]>=1:
+                                traits[trait_K(j["name"])]=j["num_units"]
+                        
+
+                        for j in i["augments"]:
+                            if j in hero_augment:
+                                img=hero_aug(j)
+                                augments[Aug_K(j)]=f"https://ddragon.leagueoflegends.com/cdn/13.3.1/img/tft-hero-augment/{img}"
+                            else:
+                                img=aug_img(j)
+                                augments[Aug_K(j)]=f"https://ddragon.leagueoflegends.com/cdn/13.3.1/img/tft-augment/{img}"
+
+
+                        for j in i["units"]:
+                            dictionary={}
+                            character_id=j["character_id"]
+                            dictionary["Champion"]=champ_K(j["character_id"])
+                            url=f"https://ddragon.leagueoflegends.com/cdn/13.3.1/img/tft-hero-augment/{character_id}.TFT_Set8.png"
+                            dictionary["champion_image"]=url
+                            item={}
+                            for k in j["itemNames"]:
+                                url2=f"https://ddragon.leagueoflegends.com/cdn/13.3.1/img/tft-item/{k}.png"
+                                item[Item_K(k)]=url2
+                            dictionary["items"]=item
+                            dictionary["rarity"]=j["rarity"]
+                            dictionary["tier"]=j["tier"]
+                            units.append(dictionary)
+
+                
+                            
+
+                s=static.objects.get(Name=name)
+                s.Total_game+=1
+                s.sum_of_rank+=rank
+                if rank==1:
+                    s.Win+=1
+                    s.Top2+=1
+                elif rank==2:
+                    s.Top2+=1
+                s.save()
+
+                mat=match(Name=name,Matchid=matchid,Rank=rank,PetID=petID,Pet_Img=pet_IMG,Game_level=game_level,Traits=traits,Augments=augments,Units=units,Participant=participants)
+                mat.save()
+
+                
+    
+    matches=match.objects.filter(Name=name)
+    serializer=matchSerializer(matches,many=True)
+    return Response(serializer.data,status=status.HTTP_200_OK)
+
+def upload_to_frontend():
+    # Simulating upload to frontend
+    print("Uploading data to frontend...")
 class usersAPI(APIView):
     def get(self,request,sname):
         s_name=''
@@ -719,284 +1001,19 @@ class usersAPI(APIView):
 
 
     def post(self,request,sname):
-        key=getAPIkey()
+        print("posting")
+        t1 = threading.Thread(target=update, args=(sname,))
+        t2 = threading.Thread(target=upload_to_frontend)
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+        print("Data retrieval and upload complete!")
         
-        summonername=sname
-        
-        response=requests.get(f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-name/{summonername}?api_key={key}') #데이터 불러오기
-
-        if response.status_code==200: # 정상처리
-                print('기다려주세요')
-                pass
-
-        elif response.status_code==404:#사용자 이름 못찾음
-            if user.objects.filter(name=summonername):
-                obj = user.objects.filter(name=summonername)
-                obj.delete()
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-
-        elif response.status_code == 429:
-            print('api cost full : infinite loop start')
-            start_time = time.time()
-
-            while True: # 429error가 끝날 때까지 무한 루프
-                    if response.status_code == 429:
-                        print('try 10 second wait time')
-                        time.sleep(10)
-                        url = f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-name/{summonername}?api_key={key}'
-                        response = requests.get(url)
-                        print(response.status_code)
-
-                    elif response.status_code == 200: #다시 response 200이면 loop escape
-                        print('total wait time : ', time.time() - start_time)                            
-                        print('recovery api cost')
-                        break
-
-        elif response.status_code == 503: # 잠시 서비스를 이용하지 못하는 에러
-                    print('service available error')
-                    start_time = time.time()
-
-                    while True:
-                        if response.status_code == 503 or response.status_code == 429:
-
-                            print('try 10 second wait time')
-                            time.sleep(10)
-                            url = f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-name/{summonername}?api_key={key}'
-                            response = requests.get(url)
-                            print(response.status_code)
-
-                        elif response.status_code == 200: # 똑같이 response가 정상이면 loop escape
-                            print('total error wait time : ', time.time() - start_time)
-                            print('recovery api cost')
-                            break
-
-        elif response.status_code == 403: # api갱신이 필요
-                print('you need api renewal')
-                print('break')
-
-        data=response.json()
-        name=''
-        for i in data["name"]:
-            if i!=' ':
-                name+=i
-        
-        puuid=data['puuid']
-        level=data['summonerLevel']
-        profile_icon=data['profileIconId']
-        profileid=f"http://ddragon.leagueoflegends.com/cdn/13.3.1/img/profileicon/{profile_icon}.png"
-        
-        u=user(name=name,Puuid=puuid,Level=level,profile_img=profileid)# 유저 테이블에 puuid 와 이름, level저장
-        if u in user.objects.all():
-            obj = user.objects.filter(name=name)
-            obj.delete()
-        u.save()
-
-        
-        #match id 가져오기
-        response_match=requests.get(f'https://asia.api.riotgames.com/tft/match/v1/matches/by-puuid/{puuid}/ids?start=0&count=20&api_key={key}')
-        ids=response_match.json() #match id들 가져오기
-        
-        #foreign key
-        s_name=user.objects.filter(Puuid=puuid)
-        name=s_name[0]
-
-
-        # 티어 LP 크롤링
-        croll=''
-        for i in range(0,len(sname)): # 공백제거
-            if sname[i]!=' ':
-                croll+=sname[i]
-        encode = urllib.parse.quote_plus(croll)
-        a=requests.get("https://lolchess.gg/profile/kr/"+encode)
-        req=a.text
-        soup=bs(req,'html.parser')
-        #더블업모드 티어 및 LP
-        b=soup.find_all('div','tier-ranked-info__content')[1]
-        if b.find('strong'):
-            tier=b.find('strong').text
-            tier=str(tier).strip()
-            LP=b.find('span').text
-            LP=LP[:-2]
-
-        else:
-            tier=b.find('span').text
-            LP=0
-
-
-
-        # 통계 모델 만들기
-        stat=static(Name=name,Level=level,Tier=tier,LP=LP)
-        if stat in static.objects.all():
-            obj = static.objects.filter(Name=name)
-            obj.delete()
-        stat.save()
-        
-
-        hero_augment=['TFT8_Augment_BelVethVoidmother', 'TFT8_Augment_AurelionSolImpact', 'TFT8_Augment_ChoGathMR', 'TFT8_Augment_RammusArmor', 'TFT8_Augment_VelkozFrostburn', 'TFT8_Augment_ZacSupersize', 'TFT8_Augment_SonaExile', 'TFT8_Augment_SonaSupport', 'TFT8_Augment_AlistarAoEPulverizer', 'TFT8_Augment_JaxASCarry', 'TFT8_Augment_SennaASCarry', 'TFT8_Augment_NilahReflection', 'TFT8_Augment_ZoeDoubleTrouble', 'TFT8_Augment_SennaSupport', 'TFT8_Augment_AlistarBeefUp', 'TFT8_Augment_RivenReverberation', 'TFT8_Augment_AnnieCarry', 'TFT8_Augment_AnnieSupport', 'TFT8_Augment_CamilleCarry', 'TFT8_Augment_LeeSinSupport', 'TFT8_Augment_RellSupport', 'TFT8_Augment_YuumiSupport', 'TFT8_Augment_ViSupport', 'TFT8_Augment_SivirSupport', 'TFT8_Augment_KaisaStarCrossed', 'TFT8_Augment_YasuoCarry', 'TFT8_Augment_LeBlancGlitch', 'TFT8_Augment_FioraCarry', 'TFT8_Augment_EzrealSupport', 'TFT8_Augment_JinxCarry', 'TFT8_Augment_MalphiteCarry', 'TFT8_Augment_NasusCarry', 'TFT8_Augment_DravenCarry', 'TFT8_Augment_KaisaCarry', 'TFT8_Augment_GalioCarry', 'TFT8_Augment_GalioSupport', 'TFT8_Augment_AurelionSolCarry', 'TFT8_Augment_JaxSupport', 'TFT8_Augment_LuxCarry', 'TFT8_Augment_PoppyCarry', 'TFT8_Augment_ApheliosSupport', 'TFT8_Augment_LuxSupport', 'TFT8_Augment_GangplankSupport', 'TFT8_Augment_SylasCarry', 'TFT8_Augment_SylasSupport', 'TFT8_Augment_SettCarry', 'TFT8_Augment_KayleCarry', 'TFT8_Augment_KayleSupport', 'TFT8_Augment_EkkoSupport', 'TFT8_Augment_MordekaiserCarry', 'TFT8_Augment_VelkozSupport', 'TFT8_Augment_SettSupport', 'TFT8_Augment_TalonCarry', 'TFT8_Augment_MissFortuneCarry', 'TFT8_Augment_ChoGathCarry', 'TFT8_Augment_SyndraSupport', 'TFT8_Augment_RammusCarry', 'TFT8_Augment_LeonaCarry', 'TFT8_Augment_NunuSupport', 'TFT8_Augment_FiddlesticksCarry', 'TFT8_Augment_UrgotCarry', 'TFT8_Augment_JannaSupport', 'TFT8_Augment_SamiraCarry', 'TFT8_Augment_TaliyahSupport', 'TFT8_Augment_ZedSupport', 'TFT8_Augment_BlitzcrankCarry', 'TFT8_Augment_UrgotSupport', 'TFT8_Augment_BlitzcrankSupport', 'TFT8_Augment_MordekaiserSupport', 'TFT8_Augment_ApheliosCarry', 'TFT8_Augment_LuluSupport', 'TFT8_Augment_LeonaSupport', 'TFT8_Augment_SejuaniCarry', 'TFT8_Augment_SyndraCarry', 'TFT8_Augment_WukongSupport', 'TFT8_Augment_AsheCarry', 'TFT8_Augment_AsheSupport', 'TFT8_Augment_NilahSupport', 'TFT8_Augment_VayneSupport', 'TFT8_Augment_RivenSupport', 'TFT8_Augment_ZoeSupport', 'TFT8_Augment_LeBlancSupport', 'TFT8_Augment_LeeSinCarry', 'TFT8_Augment_YuumiCarry', 'TFT8_Augment_FiddlesticksSupport', 'TFT8_Augment_PoppySupport', 'TFT8_Augment_JannaCarry', 'TFT8_Augment_RenegadePartners', 'TFT8_Augment_TaliyahCarry', 'TFT8_Augment_ZedCarry', 'TFT8_Augment_SivirCarry', 'TFT8_Augment_RenektonCarry', 'TFT8_Augment_ViCarry', 'TFT8_Augment_RenektonSupport', 'TFT8_Augment_RellCarry', 'TFT8_Augment_FioraSupport', 'TFT8_Augment_DravenSupport', 'TFT8_Augment_YasuoSupport', 'TFT8_Augment_NasusSupport', 'TFT8_Augment_SorakaSupport', 'TFT8_Augment_LuluCarry', 'TFT8_Augment_SorakaCarry', 'TFT8_Augment_VayneCarry', 'TFT8_Augment_MalphiteSupport', 'TFT8_Augment_BelVethCarry', 'TFT8_Augment_EkkoCarry', 'TFT8_Augment_GangplankCarry', 'TFT8_Augment_JinxSupport', 'TFT8_Augment_MissFortuneSupport', 'TFT8_Augment_CamilleSupport', 'TFT8_Augment_WukongCarry', 'TFT8_Augment_SejuaniSupport', 'TFT8_Augment_ZacSupport', 'TFT8_Augment_NunuCarry', 'TFT8_Augment_ViegoCarry', 'TFT8_Augment_SamiraSupport', 'TFT8_Augment_TalonSupport', 'TFT8_Augment_EzrealCarry']
-        
-
-        #match 정보 가져오기
-        for matchid in ids:
-            response=requests.get(f'https://asia.api.riotgames.com/tft/match/v1/matches/{matchid}?api_key={key}')
-
-            if response.status_code==200:
-                pass
-            elif response.status_code==429:
-                print('대기시간이 초과되었습니다. 잠시 기다려주세요')
-                start_time = time.time()
-
-                while True: # 429error가 끝날 때까지 무한 루프
-                        if response.status_code == 429:
-                            print('try 10 second wait time')
-                            time.sleep(10)
-                            response=requests.get(f'https://asia.api.riotgames.com/tft/match/v1/matches/{matchid}?api_key={key}')
-                            print(response.status_code)
-
-                        elif response.status_code == 200: #다시 response 200이면 loop escape
-                            print('total wait time : ', time.time() - start_time)
-                            print('recovery api cost')
-                            break
-            elif response.status_code == 503: # 잠시 서비스를 이용하지 못하는 에러
-                    print('service available error')
-                    
-
-            elif response.status_code == 403: # api갱신이 필요
-                print('you need api renewal')
-                print('break')
-                    
-
-            data = response.json()
-            rank=0
-            petID=''
-            pet_IMG=''
-            game_level=0
-            traits={}
-            augments={}
-            units=[]
-            participants=[]
-            
-
-            if data["info"]['tft_game_type'] == 'pairs':
-                m = match.objects.filter(Matchid = matchid)
-                if not m :
-                    for i in range(len(data["metadata"]["participants"])):
-                        if data["metadata"]["participants"][i] in user.objects.all(): # puuid 닉네임으로 바꾸기
-                            obj=user.objects.filter(Puuid=data["metadata"]["participants"][i])
-                            participants.append(obj["Name"])
-                        else:
-                            PUUID=data["metadata"]["participants"][i]
-                            response=requests.get(f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-puuid/{PUUID}?api_key={key}')
-                            if response.status_code==200:
-                                
-                                namedata=response.json()
-                                nickname=''
-                                for p in namedata["name"]:
-                                    if p!=' ':
-                                        nickname+=p
-                                playerpuuid=namedata['puuid']
-                                level=namedata['summonerLevel']
-                                profile_icon=namedata['profileIconId']
-                                profileid=f"http://ddragon.leagueoflegends.com/cdn/13.3.1/img/profileicon/{profile_icon}.png"
-                                u=user(name=nickname,Puuid=playerpuuid,Level=level,profile_img=profileid)# 유저 테이블에 puuid 와 이름, level저장
-                                u.save()
-                                participants.append(nickname)
-                            elif response.status_code==429:
-                                print('대기시간이 초과되었습니다. 잠시 기다려주세요')
-                                start_time = time.time()
-
-                                while True: # 429error가 끝날 때까지 무한 루프
-                                        if response.status_code == 429:
-                                            print('try 10 second wait time')
-                                            time.sleep(10)
-                                            response=requests.get(f'https://kr.api.riotgames.com/tft/summoner/v1/summoners/by-puuid/{PUUID}?api_key={key}')
-                                            print(response.status_code)
-
-                                        elif response.status_code == 200: #다시 response 200이면 loop escape
-                                            namedata=response.json()
-                                            nickname=''
-                                            for p in namedata["name"]:
-                                                if p!=' ':
-                                                    nickname+=p
-                                            playerpuuid=namedata['puuid']
-                                            level=namedata['summonerLevel']
-                                            profile_icon=namedata['profileIconId']
-                                            profileid=f"http://ddragon.leagueoflegends.com/cdn/13.3.1/img/profileicon/{profile_icon}.png"
-                                            u=user(name=nickname,Puuid=playerpuuid,Level=level,profile_img=profileid)# 유저 테이블에 puuid 와 이름, level저장
-                                            u.save()
-                                            participants.append(nickname)
-                                            break
-                 
-                    for i in data["info"]['participants']:
-                        if puuid == i["puuid"]:
-                            if i['placement']<3:
-                                rank=1
-                            elif i['placement']<5:
-                                rank=2
-                            elif i['placement']<7:
-                                rank=3
-                            else:
-                                rank=4
-                            petID=pet_K(i["companion"]['item_ID'])
-                            
-                            pet_code=pet_img(i["companion"]['item_ID'])
-                            pet_IMG=f"https://ddragon.leagueoflegends.com/cdn/13.3.1/img/tft-tactician/{pet_code}"
-                            
-                            game_level=i['level']
-
-
-                            tr=i['traits']
-                            trait = sorted(tr, key=(lambda x: x['style']),reverse=True)
-                            #활성화되어있는 특성만 뽑기
-                            for j in trait:
-                                if j["tier_current"]>=1:
-                                    traits[trait_K(j["name"])]=j["num_units"]
-                            
-
-                            for j in i["augments"]:
-                                if j in hero_augment:
-                                    img=hero_aug(j)
-                                    augments[Aug_K(j)]=f"https://ddragon.leagueoflegends.com/cdn/13.3.1/img/tft-hero-augment/{img}"
-                                else:
-                                    img=aug_img(j)
-                                    augments[Aug_K(j)]=f"https://ddragon.leagueoflegends.com/cdn/13.3.1/img/tft-augment/{img}"
-
-
-                            for j in i["units"]:
-                                dictionary={}
-                                character_id=j["character_id"]
-                                dictionary["Champion"]=champ_K(j["character_id"])
-                                url=f"https://ddragon.leagueoflegends.com/cdn/13.3.1/img/tft-hero-augment/{character_id}.TFT_Set8.png"
-                                dictionary["champion_image"]=url
-                                item=[]
-                                for k in j["itemNames"]:
-                                    item.append(Item_K(k))
-                                dictionary["items"]=item
-                                dictionary["rarity"]=j["rarity"]
-                                dictionary["tier"]=j["tier"]
-                                units.append(dictionary)
-
-                    
-                                
-
-                    s=static.objects.get(Name=name)
-                    s.Total_game+=1
-                    s.sum_of_rank+=rank
-                    if rank==1:
-                        s.Win+=1
-                        s.Top2+=1
-                    elif rank==2:
-                        s.Top2+=1
-                    s.save()
-
-                    mat=match(Name=name,Matchid=matchid,Rank=rank,PetID=petID,Pet_Img=pet_IMG,Game_level=game_level,Traits=traits,Augments=augments,Units=units,Participant=participants)
-                    mat.save()
-
-                    
-        
-        matches=match.objects.filter(Name=name)
+        matches=match.objects.filter(Name=sname)
         serializer=matchSerializer(matches,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
+       
 
 class statAPI(APIView):
     def get(self,request,sname):
