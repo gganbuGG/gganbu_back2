@@ -982,9 +982,7 @@ def update(summonername):
 
                 
     
-    matches=match.objects.filter(Name=name)
-    serializer=matchSerializer(matches,many=True)
-    return Response(serializer.data,status=status.HTTP_200_OK)
+    
 
 def upload_to_frontend():
     # Simulating upload to frontend
