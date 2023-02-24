@@ -865,8 +865,10 @@ def update(summonername):
         
 
         if data["info"]['tft_game_type'] == 'pairs':
-            m = match.objects.filter(Matchid = matchid)
-            if not m :
+            try:
+                # try to get an existing match with the specified matchid
+                m = match.objects.get(Matchid=matchid)
+            except match.DoesNotExist:
                 for i in range(len(data["metadata"]["participants"])):
                     if data["metadata"]["participants"][i] in user.objects.all(): # puuid 닉네임으로 바꾸기
                         obj=user.objects.filter(Puuid=data["metadata"]["participants"][i])
