@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import user,match,static
+from .models import user,match,static,state
 
 class userSerializer(serializers.ModelSerializer):
     class Meta:
@@ -34,3 +34,7 @@ class statSerializer(serializers.ModelSerializer):
         rate=round(rate,2)
         return rate
 
+class stateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=state
+        fields=['Name','updating','last_time']

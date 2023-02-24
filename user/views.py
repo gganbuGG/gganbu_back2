@@ -8,8 +8,8 @@ import requests
 import urllib
 import urllib.parse
 from bs4 import BeautifulSoup as bs
-from .models import user,match,static
-from .serializers import userSerializer,matchSerializer,statSerializer
+from .models import user,match,static,state
+from .serializers import userSerializer,matchSerializer,statSerializer,stateSerializer
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -979,14 +979,26 @@ def update(summonername):
 
                 mat=match(Name=name,Matchid=matchid,Rank=rank,PetID=petID,Pet_Img=pet_IMG,Game_level=game_level,Traits=traits,Augments=augments,Units=units,Participant=participants)
                 mat.save()
-
-                
+    endtime=time.time()
+    if state.objects.filter(Name=summonername):
+        obj = state.objects.filter(Name=summonername)
+        obj.delete()
+    st=state(Name=summonername,updating=True,last_time=endtime)
+    st.save()                
+    print("끝났습니다.")
     
-    
 
-def upload_to_frontend():
+def upload_to_frontend(summonername):
     # Simulating upload to frontend
     print("Uploading data to frontend...")
+    start_time=time.time()
+    
+    if state.objects.filter(Name=summonername):
+        obj = state.objects.filter(Name=summonername)
+        obj.delete()
+    st=state(Name=summonername,updating=False,last_time=start_time)
+    st.save()
+
 class usersAPI(APIView):
     def get(self,request,sname):
         s_name=''
@@ -1001,13 +1013,9 @@ class usersAPI(APIView):
     def post(self,request,sname):
         print("posting")
         t1 = threading.Thread(target=update, args=(sname,))
-        t2 = threading.Thread(target=upload_to_frontend)
+        t2= threading.Thread(target=upload_to_frontend,args=(sname,))     
         t1.start()
         t2.start()
-        t1.join()
-        t2.join()
-        print("Data retrieval and upload complete!")
-        
         matches=match.objects.filter(Name=sname)
         serializer=matchSerializer(matches,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
@@ -1018,6 +1026,12 @@ class statAPI(APIView):
         
         stat=static.objects.filter(Name=sname)
         serializer=statSerializer(stat,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+
+class stateAPI(APIView):
+    def get(self,request,sname):
+        states=state.objects.get(Name=sname)
+        serializer=stateSerializer(states)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
 def riot(request):

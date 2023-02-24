@@ -29,3 +29,9 @@ class static(models.Model):
     Top2=models.IntegerField(default=0)
     sum_of_rank=models.IntegerField(default=0)
     Total_game=models.IntegerField(default=0)
+
+
+class state(models.Model):
+    Name=models.CharField(max_length=20)
+    updating=models.BooleanField()
+    last_time=models.DateTimeField(auto_now=True)
