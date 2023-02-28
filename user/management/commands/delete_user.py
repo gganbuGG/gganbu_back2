@@ -1,11 +1,11 @@
 
 from django.core.management.base import BaseCommand
 import requests
-from user.models import user,match,state
+from user.models import user,match,state,static
 
 
 def delete_infoData():
-    obj = state.objects.all()
+    obj = static.objects.all()
     obj.delete()
 
 
