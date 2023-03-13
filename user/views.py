@@ -786,7 +786,7 @@ def update(summonername):
     ids=response_match.json() #match id들 가져오기
     
     #foreign key
-    s_name=user.objects.filter(Puuid=puuid)
+    s_name=user.objects.filter(name=name)
     name=s_name[0]
 
 
